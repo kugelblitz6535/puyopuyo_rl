@@ -1,13 +1,12 @@
 from collections import deque
 
 import numpy as np
-from gym.envs.registration import make
-from gym_puyopuyo import register
-from gym_puyopuyo.agent import TsuTreeSearchAgent
 from keras.layers import Dense
 from keras.models import Sequential
 from keras.optimizers import Adam
 from tensorflow.losses import huber_loss
+
+import puyopuyo
 
 
 NUM_EPISODES = 500  # エピソード数
@@ -53,15 +52,12 @@ class Memory():
         return len(self.buffer)
 
 
-register()
-
-env = make("PuyoPuyoEndlessTsu-v2")
+env = puyopuyo.PuyoPuyo()
 
 env.reset()
-state = env.get_root()
-# 環境の作成
-state_size = state.width * state.height
-action_size = 22
+
+state_size = env.observation_space.shape[0]
+action_size = env.action_space.n
 
 # main-networkの作成
 main_qn = make_model(state_size, action_size)
@@ -71,7 +67,10 @@ target_qn = make_model(state_size, action_size)
 
 # 経験メモリの作成
 memory = Memory(MEMORY_SIZE)
+# 学習の開始
 
+# 環境の初期化
+state = env.reset()
 state = np.reshape(state, [1, state_size])
 
 # エピソード数分のエピソードを繰り返す
@@ -94,20 +93,15 @@ for episode in range(1, NUM_EPISODES + 1):
 
         # ランダムな行動を選択
         if epsilon > np.random.rand():
-            action = state.actions.sample()
+            action = env.action_space.sample()
         # 行動価値関数で行動を選択
         else:
             action = np.argmax(main_qn.predict(state)[0])
 
         # 行動に応じて状態と報酬を得る
-        next_state, _, done, info = env.step(action)
-        from IPython import embed
-        embed()
-        next_state = info["state"]
+        next_state, _, done, _ = env.step(action)
         env.render()
         next_state = np.reshape(next_state, [1, state_size])
-
-        _, _, done, info = env.step(action)
 
         # エピソード完了時
         if done:
