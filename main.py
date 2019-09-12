@@ -56,8 +56,8 @@ env = puyopuyo.PuyoPuyo()
 
 env.reset()
 
-state_size = env.observation_space.shape[0]
-action_size = env.action_space.n
+field, next_puyo, next_next_puyo = env.observation_space
+action_size = env.action_space
 
 # main-networkの作成
 main_qn = make_model(state_size, action_size)
@@ -70,8 +70,7 @@ memory = Memory(MEMORY_SIZE)
 # 学習の開始
 
 # 環境の初期化
-state = env.reset()
-state = np.reshape(state, [1, state_size])
+field, next_puyo, next_next_puyo = env.reset()
 
 # エピソード数分のエピソードを繰り返す
 total_step = 0  # 総ステップ数
@@ -175,4 +174,3 @@ for episode in range(1, NUM_EPISODES + 1):
 
     # 環境のリセット
     state = env.reset()
-    state = np.reshape(state, [1, state_size])
