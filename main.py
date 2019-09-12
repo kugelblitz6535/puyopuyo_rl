@@ -60,10 +60,10 @@ field, next_puyo, next_next_puyo = env.observation_space
 action_size = env.action_space
 
 # main-networkの作成
-main_qn = make_model(state_size, action_size)
+main_qn = make_model(env.observation_space, action_size)
 
 # target-networkの作成
-target_qn = make_model(state_size, action_size)
+target_qn = make_model(env.observation_space, action_size)
 
 # 経験メモリの作成
 memory = Memory(MEMORY_SIZE)
@@ -74,14 +74,12 @@ field, next_puyo, next_next_puyo = env.reset()
 
 # エピソード数分のエピソードを繰り返す
 total_step = 0  # 総ステップ数
-success_count = 0  # 成功数
 for episode in range(1, NUM_EPISODES + 1):
     step = 0  # ステップ数
 
     # target-networkの更新
     target_qn.set_weights(main_qn.get_weights())
 
-    # 1エピソードのループ
     for _ in range(1, MAX_STEPS + 1):
         step += 1
         total_step += 1
@@ -98,37 +96,13 @@ for episode in range(1, NUM_EPISODES + 1):
             action = np.argmax(main_qn.predict(state)[0])
 
         # 行動に応じて状態と報酬を得る
-        next_state, _, done, _ = env.step(action)
+        next_state, reward, done, _ = env.step(action)
         env.render()
-        next_state = np.reshape(next_state, [1, state_size])
 
-        # エピソード完了時
-        if done:
-            # 報酬の指定
-            if step >= MAX_STEPS * 0.9:
-                success_count += 1
-                reward = 1
-            else:
-                success_count = 0
-                reward = 0
+        if step > WARMUP:
+            memory.add((state, action, reward, next_state))
 
-            # 次の状態に状態なしを代入
-            next_state = np.zeros(state.shape)
-
-            # 経験の追加
-            if step > WARMUP:
-                memory.add((state, action, reward, next_state))
-        # エピソード完了でない時
-        else:
-            # 報酬の指定
-            reward = 0
-
-            # 経験の追加
-            if step > WARMUP:
-                memory.add((state, action, reward, next_state))
-
-            # 状態に次の状態を代入
-            state = next_state
+        state = next_state
 
         # 行動価値関数の更新
         if len(memory) >= BATCH_SIZE:
@@ -160,17 +134,11 @@ for episode in range(1, NUM_EPISODES + 1):
             # 行動価値関数の更新
             main_qn.fit(inputs, targets, epochs=1, verbose=0)
 
-        # エピソード完了時
         if done:
-            # エピソードループを抜ける
             break
 
     # エピソード完了時のログ表示
     print('エピソード: {}, ステップ数: {}, epsilon: {:.4f}'.format(episode, step, epsilon))
-
-    # 5回連続成功で学習終了
-    if success_count >= 5:
-        break
 
     # 環境のリセット
     state = env.reset()

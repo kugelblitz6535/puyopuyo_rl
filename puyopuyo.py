@@ -11,6 +11,8 @@ class PuyoPuyo(object):
         self.next_puyo = self.__get_next_puyo()
         self.next_next_puyo = self.__get_next_puyo()
         self.colors = 4
+        self.reward = 0
+        self.done = False
 
         self.regal_actions = self.__list_regal_actions()
 
@@ -24,12 +26,24 @@ class PuyoPuyo(object):
         self.field = np.zeros(self.observation_space[0])
         self.next_puyo = self.__get_next_puyo()
         self.next_next_puyo = self.__get_next_puyo()
+        self.reward = 0
+        self.done = False
         return self.field, self.next_puyo, self.next_next_puyo
 
     def step(self, action):
+        self.put(action)
+        self.erase()
         self.next_puyo = self.next_next_puyo
         self.next_next_puyo = self.__get_next_puyo()
-        return self.field, self.next_puyo, self.next_next_puyo
+        info = None
+        return (self.field, self.next_puyo,
+                self.next_next_puyo), self.reward, self.done, info
+
+    def put(self, action):
+        pass
+
+    def erase(self):
+        pass
 
     def render(self):
         print(self.field)
