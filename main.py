@@ -1,16 +1,17 @@
 from collections import deque
 
+import keras
 import numpy as np
-from keras.layers import Dense
-from keras.models import Sequential
+from keras.layers import (Activation, BatchNormalization, Conv2D, Dense,
+                          Flatten, Input)
+from keras.models import Model
 from keras.optimizers import Adam
 from tensorflow.losses import huber_loss
 
 import puyopuyo
 
-
-NUM_EPISODES = 500  # エピソード数
-MAX_STEPS = 2000  # 最大ステップ数
+NUM_EPISODES = 50  # エピソード数
+MAX_STEPS = 200  # 最大ステップ数
 GAMMA = 0.99  # 時間割引率
 WARMUP = 10  # 無操作ステップ数
 
@@ -23,11 +24,20 @@ BATCH_SIZE = 32  # バッチサイズ
 
 
 def make_model(state_size, action_size):
-    model = Sequential()
-    model.add(Dense(16, activation='relu', input_dim=state_size))
-    model.add(Dense(16, activation='relu'))
-    model.add(Dense(16, activation='relu'))
-    model.add(Dense(action_size, activation='linear'))
+    field = Input(shape=state_size[0], name='field')
+    next_puyo = Input(
+        shape=state_size[1],
+        name='next_puyo')
+    next_next_puyo = Input(
+        shape=state_size[2],
+        name='next_next_puyo')
+
+    x = Flatten()(field)
+    x = Dense(128, activation='relu')(x)
+
+    x = keras.layers.concatenate([x, next_puyo, next_next_puyo])
+    output = Dense(action_size, activation='sigmoid', name='output')(x)
+    model = Model(inputs=[field, next_puyo, next_next_puyo], output=output)
     model.compile(loss=huber_loss, optimizer=Adam(lr=0.001))
     return model
 
@@ -52,36 +62,27 @@ class Memory():
         return len(self.buffer)
 
 
+def state2input(state):
+    return [np.expand_dims(i, axis=0) for i in state]
+
+
 env = puyopuyo.PuyoPuyo()
 
-env.reset()
-
-field, next_puyo, next_next_puyo = env.observation_space
-action_size = env.action_space
-
-# main-networkの作成
-main_qn = make_model(env.observation_space, action_size)
-
-# target-networkの作成
-target_qn = make_model(env.observation_space, action_size)
+main_qn = make_model(env.observation_space, env.action_space)
+target_qn = make_model(env.observation_space, env.action_space)
 
 # 経験メモリの作成
 memory = Memory(MEMORY_SIZE)
-# 学習の開始
 
-# 環境の初期化
-field, next_puyo, next_next_puyo = env.reset()
+state = env.reset()
 
 # エピソード数分のエピソードを繰り返す
 total_step = 0  # 総ステップ数
-for episode in range(1, NUM_EPISODES + 1):
-    step = 0  # ステップ数
-
+for episode in range(NUM_EPISODES):
     # target-networkの更新
     target_qn.set_weights(main_qn.get_weights())
 
-    for _ in range(1, MAX_STEPS + 1):
-        step += 1
+    for step in range(MAX_STEPS):
         total_step += 1
 
         # εを減らす
@@ -90,10 +91,14 @@ for episode in range(1, NUM_EPISODES + 1):
 
         # ランダムな行動を選択
         if epsilon > np.random.rand():
-            action = env.action_space.sample()
+            action = np.random.choice(env.legal_actions())
         # 行動価値関数で行動を選択
         else:
-            action = np.argmax(main_qn.predict(state)[0])
+            ind = np.ones(env.action_space, dtype=bool)
+            ind[env.legal_actions()] = False
+            p = main_qn.predict(state2input(state))[0]
+            p[ind] = 0
+            action = np.argmax(p)
 
         # 行動に応じて状態と報酬を得る
         next_state, reward, done, _ = env.step(action)
@@ -107,8 +112,9 @@ for episode in range(1, NUM_EPISODES + 1):
         # 行動価値関数の更新
         if len(memory) >= BATCH_SIZE:
             # ニューラルネットワークの入力と出力の準備
-            inputs = np.zeros((BATCH_SIZE, state_size))  # 入力(状態)
-            targets = np.zeros((BATCH_SIZE, action_size))  # 出力(行動ごとの価値)
+            inputs = [np.zeros((BATCH_SIZE, *shape))
+                      for shape in env.observation_space]  # 入力(状態)
+            targets = np.zeros((BATCH_SIZE, env.action_space))  # 出力(行動ごとの価値)
 
             # バッチサイズ分の経験をランダムに取得
             minibatch = memory.sample(BATCH_SIZE)
@@ -118,27 +124,27 @@ for episode in range(1, NUM_EPISODES + 1):
                     next_state_b) in enumerate(minibatch):
 
                 # 入力に状態を指定
-                inputs[i] = state_b
+                for j in range(len(env.observation_space)):
+                    inputs[j][i] = state_b[j]
 
                 # 採った行動の価値を計算
-                if not (next_state_b == np.zeros(state_b.shape)).all(axis=1):
+                if not done:
                     target = reward_b + GAMMA * \
-                        np.amax(target_qn.predict(next_state_b)[0])
+                        np.amax(target_qn.predict(state2input(next_state_b))[0])
                 else:
                     target = reward_b
 
                 # 出力に行動ごとの価値を指定
-                targets[i] = main_qn.predict(state_b)
+                targets[i] = main_qn.predict(state2input(state_b))
                 targets[i][action_b] = target  # 採った行動の価値
 
             # 行動価値関数の更新
             main_qn.fit(inputs, targets, epochs=1, verbose=0)
 
         if done:
+            print(
+                'エピソード: {}, ステップ数: {}, epsilon: {:.4f}'.format(
+                    episode, step, epsilon))
             break
 
-    # エピソード完了時のログ表示
-    print('エピソード: {}, ステップ数: {}, epsilon: {:.4f}'.format(episode, step, epsilon))
-
-    # 環境のリセット
     state = env.reset()
