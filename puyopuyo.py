@@ -23,7 +23,22 @@ class PuyoPuyo(object):
         return np.random.randint(self.colors + 1, size=2)
 
     def legal_actions(self):
-        return np.arange(self.action_space)
+        legal = np.zeros(len(self.actions), dtype=np.bool)
+        puttable = self.field[0] == 0
+        idx = 0
+        for i, j in self.actions:
+            if j == 0 or j == 2:
+                if self.field[:, i][1] == 0:
+                    legal[idx] = True
+            elif j == 1:
+                if puttable[i] and puttable[i+1]:
+                    legal[idx] = True
+            elif j == 3:
+                if puttable[i] and puttable[i-1]:
+                    legal[idx] = True
+            idx += 1
+
+        return np.where(legal)[0]
 
     def reset(self):
         self.field = np.zeros(self.observation_space[0])
