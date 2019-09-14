@@ -8,10 +8,10 @@ class PuyoPuyo(object):
         self.colors = 4
         self.observation_space = ((self.height + 1, self.width), (2,), (2,))
         self.action_space = self.width * 4 - 2
-        self.field = np.zeros(self.observation_space[0])
+        self.field = np.zeros(self.observation_space[0], dtype=np.uint8)
         self.next_puyo = self.__get_next_puyo()
         self.next_next_puyo = self.__get_next_puyo()
-        self.reward = 0
+        self.score = 0
         self.done = False
         actions = [(i, j)for i in range(
             self.width) for j in range(4)]
@@ -46,23 +46,24 @@ class PuyoPuyo(object):
         return np.where(legal)[0]
 
     def reset(self):
-        self.field = np.zeros(self.observation_space[0])
+        self.field = np.zeros(self.observation_space[0], dtype=np.uint8)
         self.next_puyo = self.__get_next_puyo()
         self.next_next_puyo = self.__get_next_puyo()
-        self.reward = 0
+        self.score = 0
         self.done = False
         return self.field, self.next_puyo, self.next_next_puyo
 
     def step(self, action):
         self.put(action)
-        self.erase()
+        chain, point = self.chain()
+        self.score += point
         if not self.field[1][2] == 0:
             self.done = True
         self.next_puyo = self.next_next_puyo
         self.next_next_puyo = self.__get_next_puyo()
         info = None
         return (self.field, self.next_puyo,
-                self.next_next_puyo), self.reward, self.done, info
+                self.next_next_puyo), chain, self.done, info
 
     def drop(self, col, puyopuyo):
         i = np.argmax(np.where(self.field[:, col] == 0))
@@ -90,15 +91,26 @@ class PuyoPuyo(object):
         return False, 0
 
     def chain(self):
-        success, point = self.erase()
+        success, got_point = self.erase()
         chain = 0
-        score = 0
+        point = 0
         while success:
             chain += 1
-            score += point * chain
-            success, point = self.erase()
+            point += got_point * chain
+            success, got_point = self.erase()
 
-        return chain, score
+        return chain, point
 
     def render(self):
-        print(self.field)
+        for row in self.field:
+            for puyo in row:
+                if puyo == 0:
+                    print('\x1b[0m\u00b7', end="")
+                else:
+                    print(self.int2puyo(puyo), end="")
+                print(' ', end="")
+            print('\x1b[0m')
+
+    @staticmethod
+    def int2puyo(n):
+        return f"\x1b[3{n}m\u25cf"
