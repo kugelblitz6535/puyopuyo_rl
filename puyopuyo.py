@@ -20,23 +20,28 @@ class PuyoPuyo(object):
         self.actions = actions
 
     def __get_next_puyo(self):
-        return np.random.randint(self.colors + 1, size=2)
+        return np.random.randint(1, self.colors + 1, size=2)
 
     def legal_actions(self):
         legal = np.zeros(len(self.actions), dtype=np.bool)
         puttable = self.field[0] == 0
-        idx = 0
-        for i, j in self.actions:
-            if j == 0 or j == 2:
-                if self.field[:, i][1] == 0:
-                    legal[idx] = True
-            elif j == 1:
-                if puttable[i] and puttable[i+1]:
-                    legal[idx] = True
-            elif j == 3:
-                if puttable[i] and puttable[i-1]:
-                    legal[idx] = True
-            idx += 1
+        for i in range(self.action_space):
+            col, rotate = self.actions[i]
+            if col < 2:
+                if not np.all(puttable[col:2]):
+                    continue
+            elif 2 < col:
+                if not np.all(puttable[3:col+1]):
+                    continue
+            if rotate == 0 or rotate == 2:
+                if self.field[:, col][1] == 0:
+                    legal[i] = True
+            elif rotate == 1:
+                if puttable[col] and puttable[col+1]:
+                    legal[i] = True
+            elif rotate == 3:
+                if puttable[col] and puttable[col-1]:
+                    legal[i] = True
 
         return np.where(legal)[0]
 
