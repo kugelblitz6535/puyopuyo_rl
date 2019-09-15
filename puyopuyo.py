@@ -68,8 +68,6 @@ class PuyoPuyo(object):
         """
         self.__put(action)
         chain, point = self.__chain()
-        if chain:
-            print(f"chain: {chain}")
         self.score += point
         if not self.field[1][2] == 0:
             self.done = True
@@ -123,18 +121,24 @@ class PuyoPuyo(object):
             self.__check(row, col+1, color)
 
     def __fall(self):
-        pass
+        for col in range(self.width):
+            exist = np.where(self.field[:, col] != 0)[0]
+            if exist.size == 0:
+                continue
+            fell = np.zeros(self.height, dtype=np.uint8)
+            fell[-exist.size:] = self.field[exist, col]
+            self.field[:, col] = fell
 
     def __erase(self):
-        self.visited = self.__new_field()
+        self.visited = np.zeros(self.observation_space[0], dtype=np.bool)
         point = 0
         for row in range(self.height):
             for col in range(self.width):
-                self.erase_map = self.__new_field()
+                self.erase_map = np.zeros(
+                    self.observation_space[0], dtype=np.bool)
                 n = self.__check(row, col, self.field[row][col])
                 if self.erase_thresh <= n:
                     point += n * 10
-                    self.render()
                     self.field[self.erase_map] = 0
                     self.__fall()
 

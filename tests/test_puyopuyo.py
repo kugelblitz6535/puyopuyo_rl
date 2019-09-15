@@ -34,7 +34,8 @@ class TestPuyoPuyo(unittest.TestCase):
         env = PuyoPuyo()
         field, next_puyo, next_next_puyo = env.reset()
         np.testing.assert_array_equal(field, np.zeros((11, 6), dtype=np.uint8))
-        (field, new_next_puyo, _), _, done, _ = env.step(8)
+        (field, new_next_puyo, _), chain, done, _ = env.step(8)
+        self.assertEqual(chain, 0)
         self.assertFalse(done)
         self.assertEqual(field[10, 2], next_puyo[0])
         self.assertEqual(field[10, 3], next_puyo[1])
@@ -60,19 +61,99 @@ class TestPuyoPuyo(unittest.TestCase):
         np.testing.assert_array_equal(field, np.zeros((11, 6), dtype=np.uint8))
         self.assertEqual(chain, 1)
         self.assertFalse(done)
-        # env.field = np.array(
-        #     [[0, 0, 0, 0, 0, 1],
-        #      [0, 0, 0, 0, 1, 1],
-        #      [2, 1, 3, 2, 3, 1],
-        #      [3, 3, 1, 3, 2, 4],
-        #      [2, 3, 1, 1, 4, 3],
-        #      [2, 2, 1, 3, 3, 3],
-        #      [3, 1, 3, 4, 3, 3],
-        #      [1, 1, 2, 3, 4, 4],
-        #      [3, 4, 2, 1, 1, 4],
-        #      [3, 3, 4, 2, 2, 1],
-        #      [4, 4, 2, 1, 1, 4]]
-        # )
+
+        env.field = np.array(
+            [[0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0],
+             [0, 0, 1, 0, 0, 0],
+             [0, 0, 1, 0, 0, 0],
+             [0, 0, 2, 2, 0, 0]]
+        )
+        env.next_puyo = np.array([1, 1])
+        (field, _, _), chain, done, _ = env.step(7)
+        f = np.zeros((11, 6), dtype=np.uint8)
+        f[10, [2, 3]] = 2
+        np.testing.assert_array_equal(field, f)
+        self.assertEqual(chain, 1)
+        self.assertFalse(done)
+
+        env.field = np.array(
+            [[0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0],
+             [0, 0, 1, 0, 0, 0],
+             [0, 0, 1, 0, 0, 0],
+             [0, 0, 2, 2, 0, 0]]
+        )
+        env.next_puyo = np.array([2, 2])
+        (field, _, _), chain, done, _ = env.step(12)
+        f = np.zeros((11, 6), dtype=np.uint8)
+        f[[9, 10], 2] = 1
+        np.testing.assert_array_equal(field, f)
+        self.assertEqual(chain, 1)
+        self.assertFalse(done)
+
+        env.field = np.array(
+            [[0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0],
+             [0, 0, 2, 0, 0, 0],
+             [0, 0, 2, 0, 0, 0],
+             [0, 0, 1, 0, 0, 0],
+             [0, 0, 1, 0, 0, 0],
+             [0, 0, 2, 2, 0, 0]]
+        )
+        env.next_puyo = np.array([1, 1])
+        (field, _, _), chain, done, _ = env.step(13)
+        np.testing.assert_array_equal(field, np.zeros((11, 6), dtype=np.uint8))
+        self.assertEqual(chain, 2)
+        self.assertFalse(done)
+
+        env.field = np.array(
+            [[0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 1, 1],
+             [2, 1, 3, 0, 3, 1],
+             [3, 3, 1, 0, 2, 4],
+             [2, 3, 1, 1, 4, 3],
+             [2, 2, 3, 3, 4, 3],
+             [3, 1, 3, 4, 3, 2],
+             [1, 1, 2, 3, 4, 4],
+             [3, 4, 2, 1, 1, 4],
+             [3, 3, 4, 2, 2, 1],
+             [4, 4, 2, 1, 1, 4]]
+        )
+        env.next_puyo = np.array([2, 1])
+        (field, _, _), chain, done, _ = env.step(8)
+        f = np.array(
+            [[0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 1],
+             [0, 0, 0, 0, 0, 1],
+             [0, 0, 0, 0, 1, 4],
+             [0, 0, 0, 0, 3, 3],
+             [0, 0, 0, 4, 2, 3],
+             [0, 0, 0, 3, 3, 2]]
+        )
+        np.testing.assert_array_equal(field, f)
+        self.assertEqual(chain, 9)
+        self.assertFalse(done)
 
 
 if __name__ == '__main__':
