@@ -6,9 +6,12 @@ class PuyoPuyo(object):
         self.width = width
         self.height = height
         self.colors = 4
+        self.erase_thresh = 4
         self.observation_space = ((self.height + 1, self.width), (2,), (2,))
         self.action_space = self.width * 4 - 2
-        self.field = np.zeros(self.observation_space[0], dtype=np.uint8)
+        self.field = self.new_field()
+        self.visited = np.zeros(self.observation_space[0], dtype=np.bool)
+        self.erase_map = np.zeros(self.observation_space[0], dtype=np.bool)
         self.next_puyo = self.__get_next_puyo()
         self.next_next_puyo = self.__get_next_puyo()
         self.score = 0
@@ -18,6 +21,9 @@ class PuyoPuyo(object):
         actions.pop(3)
         actions.pop(-3)
         self.actions = actions
+
+    def new_field(self):
+        return np.zeros(self.observation_space[0], dtype=np.uint8)
 
     def __get_next_puyo(self):
         return np.random.randint(1, self.colors + 1, size=2)
@@ -46,7 +52,7 @@ class PuyoPuyo(object):
         return np.where(legal)[0]
 
     def reset(self):
-        self.field = np.zeros(self.observation_space[0], dtype=np.uint8)
+        self.field = self.new_field()
         self.next_puyo = self.__get_next_puyo()
         self.next_next_puyo = self.__get_next_puyo()
         self.score = 0
@@ -56,6 +62,8 @@ class PuyoPuyo(object):
     def step(self, action):
         self.put(action)
         chain, point = self.chain()
+        if chain:
+            print(f"chain: {chain}")
         self.score += point
         if not self.field[1][2] == 0:
             self.done = True
@@ -87,8 +95,49 @@ class PuyoPuyo(object):
             self.drop(col, self.next_puyo[0])
             self.drop(col - 1, self.next_puyo[1])
 
+    def out_of_field(self, row, col):
+        return row < 0 or self.height <= row or col < 0 or self.width <= col
+
+    def check(self, row, col, color):
+        if self.out_of_field(row, col):
+            return 0
+        if self.visited[row][col]:
+            return 0
+        if self.field[row][col] == 0:
+            return 0
+        if self.field[row][col] != color:
+            return 0
+
+        self.visited[row][col] = True
+        self.erase_map[row][col] = True
+        return 1 + \
+            self.check(row-1, col, color) + \
+            self.check(row, col-1, color) + \
+            self.check(row+1, col, color) + \
+            self.check(row, col+1, color)
+
+    def fall(self):
+        pass
+
     def erase(self):
-        return False, 0
+        self.visited = self.new_field()
+        point = 0
+        for row in range(self.height):
+            for col in range(self.width):
+                self.erase_map = self.new_field()
+                n = self.check(row, col, self.field[row][col])
+                if self.erase_thresh <= n:
+                    point += n * 10
+                    self.render()
+                    from IPython import embed
+                    embed()
+                    self.field[self.erase_map] = 0
+                    self.fall()
+
+        if 0 < point:
+            return True, point
+        else:
+            return False, 0
 
     def chain(self):
         success, got_point = self.erase()
@@ -114,3 +163,12 @@ class PuyoPuyo(object):
     @staticmethod
     def int2puyo(n):
         return f"\x1b[3{n}m\u25cf"
+
+
+if __name__ == "__main__":
+    env = PuyoPuyo()
+    done = False
+    while not done:
+        action = np.random.choice(env.legal_actions())
+        next_state, reward, done, _ = env.step(action)
+        env.render()
