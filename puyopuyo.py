@@ -1,5 +1,7 @@
 import numpy as np
 
+# TODO: current puyo
+
 
 class PuyoPuyo(object):
     def __init__(self, width=6, height=11):
