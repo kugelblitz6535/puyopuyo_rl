@@ -1,4 +1,5 @@
 import numpy as np
+import random
 
 
 class DQN(object):
@@ -6,6 +7,7 @@ class DQN(object):
         self.env = env
         self.main_qn = self.__make_model()
         self.target_qn = self.__make_model()
+        self.memory = []
 
         self.gamma = 0.99  # 時間割引率
 
@@ -20,48 +22,43 @@ class DQN(object):
         raise NotImplementedError
 
     def __calc_epsilon(self, total_step):
-        return self.e_stop + (self.e_start - self.e_stop) * np.exp(-self.e_decay_rate * total_step)
+        return self.e_stop + (self.e_start - self.e_stop) * \
+            np.exp(-self.e_decay_rate * total_step)
 
-    def __update_evaluate_function(self):
-        if len(memory) >= batch_size:
-            # ニューラルネットワークの入力と出力の準備
-            inputs = [np.zeros((batch_size, *shape))
-                      for shape in self.env.observation_space]  # 入力(状態)
-            targets = np.zeros(
-                (batch_size, self.env.action_space))  # 出力(行動ごとの価値)
+    def __update_evaluate_function(self, batch_size):
+        if len(self.memory) < batch_size:
+            return
 
-            # バッチサイズ分の経験をランダムに取得
-            minibatch = memory.sample(batch_size)
+        # ニューラルネットワークの入力と出力の準備
+        inputs = [np.zeros((batch_size, *shape))
+                  for shape in self.env.observation_space]  # 入力(状態)
+        targets = np.zeros(
+            (batch_size, self.env.action_space))  # 出力(行動ごとの価値)
 
-            # ニューラルネットワークの入力と出力の生成
-            for i, (state_b, action_b, reward_b,
-                    next_state_b) in enumerate(minibatch):
+        # バッチサイズ分の経験をランダムに取得
+        minibatch = random.sample(self.memory, batch_size)
 
-                # 入力に状態を指定
-                for j in range(len(self.env.observation_space)):
-                    inputs[j][i] = state_b[j]
+        inputs = [self.__state2input(state)
+                  for (state, _, _, _, _) in minibatch]
+        targets = self.main_qn.predict(inputs)
 
-                # 採った行動の価値を計算
-                if not done:
-                    target = reward_b + gamma * \
-                        np.amax(self.target_qn.predict(
-                            self.__state2input(next_state_b))[0])
-                else:
-                    target = reward_b
+        # ニューラルネットワークの入力と出力の生成
+        for i, (_, action_b, reward_b,
+                next_state_b, done) in enumerate(minibatch):
+            # 採った行動の価値を計算
+            if not done:
+                target = reward_b + self.gamma * \
+                    np.amax(self.target_qn.predict(
+                        self.__state2input(next_state_b))[0])
+            else:
+                target = reward_b
 
-                # 出力に行動ごとの価値を指定
-                targets[i] = self.main_qn.predict(
-                    self.__state2input(state_b))
-                targets[i][action_b] = target  # 採った行動の価値
+            targets[i][action_b] = target  # 採った行動の価値
 
-            # 行動価値関数の更新
-            self.main_qn.fit(inputs, targets, epochs=1, verbose=0)
+        # 行動価値関数の更新
+        self.main_qn.fit(inputs, targets, epochs=1, verbose=0)
 
     def run(self, num_episodes=50, max_steps=200, batch_size=32):
-        # 経験メモリの作成
-        memory_size = num_episodes * max_steps
-        memory = Memory(memory_size)
-
         # エピソード数分のエピソードを繰り返す
         total_step = 0  # 総ステップ数
         for episode in range(num_episodes):
@@ -87,10 +84,10 @@ class DQN(object):
                 next_state, reward, done, _ = self.env.step(action)
                 self.env.render()
 
-                memory.add((state, action, reward, next_state))
+                self.memory.append((state, action, reward, next_state, done))
                 state = next_state
 
-                self.__update_evaluate_function()
+                self.__update_evaluate_function(batch_size)
 
                 if done:
                     print(
@@ -98,23 +95,3 @@ class DQN(object):
                             episode, step, epsilon))
                     break
                 total_step += 1
-
-
-class Memory():
-    # 初期化
-    def __init__(self, memory_size):
-        self.buffer = deque(maxlen=memory_size)
-
-    # 経験の追加
-    def add(self, experience):
-        self.buffer.append(experience)
-
-    # バッチサイズ分の経験をランダムに取得
-    def sample(self, batch_size):
-        idx = np.random.choice(np.arange(len(self.buffer)),
-                               size=batch_size, replace=False)
-        return [self.buffer[i] for i in idx]
-
-    # 経験メモリのサイズ
-    def __len__(self):
-        return len(self.buffer)
