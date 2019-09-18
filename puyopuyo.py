@@ -1,7 +1,5 @@
 import numpy as np
 
-# TODO: current puyo
-
 
 class PuyoPuyo(object):
     def __init__(self, width=6, height=11):
@@ -14,6 +12,7 @@ class PuyoPuyo(object):
         self.field = self.__new_field()
         self.visited = np.zeros(self.observation_space[0], dtype=np.bool)
         self.erase_map = np.zeros(self.observation_space[0], dtype=np.bool)
+        self.current_puyo = self.__get_next_puyo()
         self.next_puyo = self.__get_next_puyo()
         self.next_next_puyo = self.__get_next_puyo()
         self.score = 0
@@ -41,16 +40,16 @@ class PuyoPuyo(object):
                 if not np.all(puttable[col:2]):
                     continue
             elif 2 < col:
-                if not np.all(puttable[3:col+1]):
+                if not np.all(puttable[3:col + 1]):
                     continue
             if rotate == 0 or rotate == 2:
                 if self.field[:, col][1] == 0:
                     legal[i] = True
             elif rotate == 1:
-                if puttable[col] and puttable[col+1]:
+                if puttable[col] and puttable[col + 1]:
                     legal[i] = True
             elif rotate == 3:
-                if puttable[col] and puttable[col-1]:
+                if puttable[col] and puttable[col - 1]:
                     legal[i] = True
 
         return np.where(legal)[0]
@@ -59,11 +58,12 @@ class PuyoPuyo(object):
         """環境をリセットする。
         """
         self.field = self.__new_field()
+        self.current_puyo = self.__get_next_puyo()
         self.next_puyo = self.__get_next_puyo()
         self.next_next_puyo = self.__get_next_puyo()
         self.score = 0
         self.done = False
-        return self.field, self.next_puyo, self.next_next_puyo
+        return self.field, self.current_puyo, self.next_puyo, self.next_next_puyo
 
     def step(self, action):
         """actionで指定した手を行った後の環境、報酬、環境の終了状態、infoを返す。
@@ -73,10 +73,11 @@ class PuyoPuyo(object):
         self.score += point
         if not self.field[1][2] == 0:
             self.done = True
+        self.current_puyo = self.next_puyo
         self.next_puyo = self.next_next_puyo
         self.next_next_puyo = self.__get_next_puyo()
         info = None
-        return (self.field, self.next_puyo,
+        return (self.field, self.current_puyo, self.next_puyo,
                 self.next_next_puyo), chain, self.done, info
 
     def __drop(self, col, puyopuyo):
@@ -91,15 +92,15 @@ class PuyoPuyo(object):
     def __put(self, action):
         col, rotate = self.actions[action]
         if rotate == 0:
-            self.__drop(col, self.next_puyo)
+            self.__drop(col, self.current_puyo)
         elif rotate == 2:
-            self.__drop(col, self.next_puyo[::-1])
+            self.__drop(col, self.current_puyo[::-1])
         elif rotate == 1:
-            self.__drop(col, self.next_puyo[0])
-            self.__drop(col + 1, self.next_puyo[1])
+            self.__drop(col, self.current_puyo[0])
+            self.__drop(col + 1, self.current_puyo[1])
         elif rotate == 3:
-            self.__drop(col, self.next_puyo[0])
-            self.__drop(col - 1, self.next_puyo[1])
+            self.__drop(col, self.current_puyo[0])
+            self.__drop(col - 1, self.current_puyo[1])
 
     def __out_of_field(self, row, col):
         return row < 0 or self.height <= row or col < 0 or self.width <= col
@@ -117,10 +118,10 @@ class PuyoPuyo(object):
         self.visited[row][col] = True
         self.erase_map[row][col] = True
         return 1 + \
-            self.__check(row-1, col, color) + \
-            self.__check(row, col-1, color) + \
-            self.__check(row+1, col, color) + \
-            self.__check(row, col+1, color)
+            self.__check(row - 1, col, color) + \
+            self.__check(row, col - 1, color) + \
+            self.__check(row + 1, col, color) + \
+            self.__check(row, col + 1, color)
 
     def __fall(self):
         for col in range(self.width):
