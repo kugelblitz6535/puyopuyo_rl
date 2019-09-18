@@ -42,6 +42,35 @@ class TestPuyoPuyo(unittest.TestCase):
         np.testing.assert_array_equal(new_current_puyo, next_puyo)
         np.testing.assert_array_equal(new_next_puyo, next_next_puyo)
 
+    def test_done(self):
+        env = PuyoPuyo()
+        env.reset()
+        near_deth = np.array(
+            [[0, 0, 0, 3, 0, 0],
+             [0, 0, 0, 2, 0, 0],
+             [0, 0, 3, 2, 0, 0],
+             [0, 0, 4, 1, 0, 0],
+             [0, 0, 4, 1, 0, 0],
+             [0, 0, 3, 4, 0, 0],
+             [0, 0, 3, 4, 0, 0],
+             [0, 0, 2, 3, 0, 0],
+             [0, 0, 2, 3, 0, 0],
+             [0, 0, 1, 2, 0, 0],
+             [0, 0, 1, 2, 0, 0]]
+        )
+        env.field = np.copy(near_deth)
+        env.current_puyo = np.array([1, 1])
+        _, chain, done, _ = env.step(7)
+        self.assertEqual(chain, 0)
+        self.assertTrue(done)
+
+        env.reset()
+        env.field = np.copy(near_deth)
+        env.current_puyo = np.array([2, 2])
+        _, chain, done, _ = env.step(7)
+        self.assertEqual(chain, 1)
+        self.assertFalse(done)
+
     def test_step_with_chain(self):
         env = PuyoPuyo()
         env.field = np.array(
