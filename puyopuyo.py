@@ -16,7 +16,6 @@ class PuyoPuyo(object):
         self.next_puyo = self.__get_next_puyo()
         self.next_next_puyo = self.__get_next_puyo()
         self.score = 0
-        self.done = False
         actions = [(i, j)for i in range(
             self.width) for j in range(4)]
         actions.pop(3)
@@ -62,7 +61,6 @@ class PuyoPuyo(object):
         self.next_puyo = self.__get_next_puyo()
         self.next_next_puyo = self.__get_next_puyo()
         self.score = 0
-        self.done = False
         return self.field, self.current_puyo, self.next_puyo, self.next_next_puyo
 
     def step(self, action):
@@ -71,14 +69,15 @@ class PuyoPuyo(object):
         self.__put(action)
         chain, point = self.__chain()
         self.score += point
-        if not self.field[1][2] == 0:
-            self.done = True
         self.current_puyo = self.next_puyo
         self.next_puyo = self.next_next_puyo
         self.next_next_puyo = self.__get_next_puyo()
         info = None
+        done = False
+        if self.field[1][2] != 0:
+            done = True
         return (self.field, self.current_puyo, self.next_puyo,
-                self.next_next_puyo), chain, self.done, info
+                self.next_next_puyo), chain, done, info
 
     def __drop(self, col, puyopuyo):
         i = np.argmax(np.where(self.field[:, col] == 0))

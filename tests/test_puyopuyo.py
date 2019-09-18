@@ -23,12 +23,10 @@ class TestPuyoPuyo(unittest.TestCase):
         env = PuyoPuyo()
         env.field = np.random.randint(1, 5, size=(11, 6))
         env.score = 100
-        env.done = True
         env.reset()
         np.testing.assert_array_equal(
             env.field, np.zeros((11, 6), dtype=np.uint8))
         self.assertEqual(env.score, 0)
-        self.assertFalse(env.done)
 
     def test_step(self):
         env = PuyoPuyo()
