@@ -7,7 +7,7 @@ class PuyoPuyo(object):
         self.height = height
         self.colors = 4
         self.erase_thresh = 4
-        self.observation_space = ((self.height, self.width), (2,), (2,))
+        self.observation_space = ((self.height, self.width), (2,), (2,), (2,))
         self.action_space = self.width * 4 - 2
         self.field = self.__new_field()
         self.visited = np.zeros(self.observation_space[0], dtype=np.bool)

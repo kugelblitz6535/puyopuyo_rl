@@ -5,8 +5,10 @@ import random
 class DQN(object):
     def __init__(self, env):
         self.env = env
-        self.main_qn = self.__make_model()
-        self.target_qn = self.__make_model()
+        self.main_qn = self.__make_model(
+            env.observation_space, env.action_space)
+        self.target_qn = self.__make_model(
+            env.observation_space, env.action_space)
         self.memory = []
 
         self.gamma = 0.99  # 時間割引率
@@ -15,7 +17,7 @@ class DQN(object):
         self.e_stop = 0.01  # εの最終値
         self.e_decay_rate = 0.001  # εの減衰率
 
-    def __make_model(self):
+    def __make_model(self, state_size, action_size):
         raise NotImplementedError
 
     def __state2input(self, state):
