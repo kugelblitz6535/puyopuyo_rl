@@ -13,24 +13,10 @@ from puyopuyo import PuyoPuyo
 
 
 class PuyoPuyoDQN(DQN):
-    def __init__(self, env):
-        self.env = env
-        self.main_qn = self.__make_model(
-            env.observation_space, env.action_space)
-        self.target_qn = self.__make_model(
-            env.observation_space, env.action_space)
-        self.memory = []
-
-        self.gamma = 0.99  # 時間割引率
-
-        self.e_start = 1.0  # εの初期値
-        self.e_stop = 0.01  # εの最終値
-        self.e_decay_rate = 0.001  # εの減衰率
-
-    def __state2input(self, state):
+    def state2input(self, state):
         return [np.expand_dims(i, axis=0) for i in state]
 
-    def __make_model(self, state_size, action_size):
+    def make_model(self, state_size, action_size):
         field = Input(shape=state_size[0], name='field')
         current_puyo = Input(
             shape=state_size[1],

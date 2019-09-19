@@ -5,9 +5,9 @@ import random
 class DQN(object):
     def __init__(self, env):
         self.env = env
-        self.main_qn = self.__make_model(
+        self.main_qn = self.make_model(
             env.observation_space, env.action_space)
-        self.target_qn = self.__make_model(
+        self.target_qn = self.make_model(
             env.observation_space, env.action_space)
         self.memory = []
 
@@ -17,10 +17,10 @@ class DQN(object):
         self.e_stop = 0.01  # εの最終値
         self.e_decay_rate = 0.001  # εの減衰率
 
-    def __make_model(self, state_size, action_size):
+    def make_model(self, state_size, action_size):
         raise NotImplementedError
 
-    def __state2input(self, state):
+    def state2input(self, state):
         raise NotImplementedError
 
     def __calc_epsilon(self, total_step):
@@ -40,7 +40,7 @@ class DQN(object):
         # バッチサイズ分の経験をランダムに取得
         minibatch = random.sample(self.memory, batch_size)
 
-        inputs = [self.__state2input(state)
+        inputs = [self.state2input(state)
                   for (state, _, _, _, _) in minibatch]
         targets = self.main_qn.predict(inputs)
 
@@ -51,7 +51,7 @@ class DQN(object):
             if not done:
                 target = reward_b + self.gamma * \
                     np.amax(self.target_qn.predict(
-                        self.__state2input(next_state_b))[0])
+                        self.state2input(next_state_b))[0])
             else:
                 target = reward_b
 
@@ -78,7 +78,7 @@ class DQN(object):
                 else:
                     ind = np.ones(self.env.action_space, dtype=bool)
                     ind[self.env.legal_actions()] = False
-                    p = self.main_qn.predict(self.__state2input(state))[0]
+                    p = self.main_qn.predict(self.state2input(state))[0]
                     p[ind] = 0
                     action = np.argmax(p)
 
