@@ -15,7 +15,7 @@ class DQN(object):
 
         self.e_start = 1.0  # εの初期値
         self.e_stop = 0.01  # εの最終値
-        self.e_decay_rate = 0.001  # εの減衰率
+        self.e_decay_rate = 0.0001  # εの減衰率
 
     def make_model(self, state_size, action_size):
         raise NotImplementedError
@@ -83,7 +83,9 @@ class DQN(object):
 
                 # 行動に応じて状態と報酬を得る
                 next_state, reward, done, _ = self.env.step(action)
-                self.env.render()
+                if 1 < reward:
+                    print(reward)
+                # self.env.render()
 
                 self.memory.append((state, action, reward, next_state, done))
                 state = next_state

@@ -76,6 +76,7 @@ class PuyoPuyo(object):
         done = False
         if self.field[1][2] != 0:
             done = True
+            chain = -1
         return (self.field, self.current_puyo, self.next_puyo,
                 self.next_next_puyo), chain, done, info
 
