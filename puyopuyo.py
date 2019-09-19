@@ -2,7 +2,7 @@ import numpy as np
 
 
 class PuyoPuyo(object):
-    def __init__(self, width=6, height=11):
+    def __init__(self, width=6, height=13):
         self.width = width
         self.height = height
         self.colors = 4
