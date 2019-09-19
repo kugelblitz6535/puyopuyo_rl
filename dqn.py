@@ -40,8 +40,7 @@ class DQN(object):
         # バッチサイズ分の経験をランダムに取得
         minibatch = random.sample(self.memory, batch_size)
 
-        inputs = [self.state2input(state)
-                  for (state, _, _, _, _) in minibatch]
+        inputs = self.state2input([state for (state, _, _, _, _) in minibatch])
         targets = self.main_qn.predict(inputs)
 
         # ニューラルネットワークの入力と出力の生成

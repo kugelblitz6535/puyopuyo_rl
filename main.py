@@ -14,7 +14,15 @@ from puyopuyo import PuyoPuyo
 
 class PuyoPuyoDQN(DQN):
     def state2input(self, state):
-        return [np.expand_dims(i, axis=0) for i in state]
+        if isinstance(state, tuple):
+            return [np.expand_dims(i, axis=0) for i in state]
+        else:
+            return [
+                np.array([field for (field, _, _, _) in state], dtype=np.uint8),
+                np.array([puyo for (_, puyo, _, _) in state], dtype=np.uint8),
+                np.array([puyo for (_, _, puyo, _) in state], dtype=np.uint8),
+                np.array([puyo for (_, _, _, puyo) in state], dtype=np.uint8)
+            ]
 
     def make_model(self, state_size, action_size):
         field = Input(shape=state_size[0], name='field')
