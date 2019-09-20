@@ -15,13 +15,21 @@ class DQN(object):
 
         self.e_start = 1.0  # εの初期値
         self.e_stop = 0.01  # εの最終値
-        self.e_decay_rate = 0.0001  # εの減衰率
+        self.e_decay_rate = 0.001  # εの減衰率
 
     def make_model(self, state_size, action_size):
         raise NotImplementedError
 
     def state2input(self, state):
         raise NotImplementedError
+
+    def random_action(self):
+        return np.random.choice(self.env.legal_actions())
+
+    def illegal_actions(self):
+        ind = np.ones(self.env.action_space, dtype=bool)
+        ind[self.env.legal_actions()] = False
+        return ind
 
     def __calc_epsilon(self, total_step):
         return self.e_stop + (self.e_start - self.e_stop) * \
@@ -30,12 +38,6 @@ class DQN(object):
     def __update_evaluate_function(self, batch_size):
         if len(self.memory) < batch_size:
             return
-
-        # ニューラルネットワークの入力と出力の準備
-        inputs = [np.zeros((batch_size, *shape))
-                  for shape in self.env.observation_space]  # 入力(状態)
-        targets = np.zeros(
-            (batch_size, self.env.action_space))  # 出力(行動ごとの価値)
 
         # バッチサイズ分の経験をランダムに取得
         minibatch = random.sample(self.memory, batch_size)
@@ -59,7 +61,13 @@ class DQN(object):
         # 行動価値関数の更新
         self.main_qn.fit(inputs, targets, epochs=1, verbose=0)
 
-    def run(self, num_episodes=50, max_steps=200, batch_size=32):
+    def run(
+            self,
+            num_episodes=50,
+            max_steps=200,
+            batch_size=32,
+            model_save_episodes=10,
+            verbose=True):
         # エピソード数分のエピソードを繰り返す
         total_step = 0  # 総ステップ数
         for episode in range(num_episodes):
@@ -72,12 +80,11 @@ class DQN(object):
                 # ランダムな行動を選択
                 epsilon = self.__calc_epsilon(total_step)
                 if epsilon > np.random.rand():
-                    action = np.random.choice(self.env.legal_actions())
+                    action = self.random_action()
                 # 行動価値関数で行動を選択
                 else:
-                    ind = np.ones(self.env.action_space, dtype=bool)
-                    ind[self.env.legal_actions()] = False
                     p = self.main_qn.predict(self.state2input(state))[0]
+                    ind = self.illegal_actions()
                     p[ind] = 0
                     action = np.argmax(p)
 
@@ -85,12 +92,15 @@ class DQN(object):
                 next_state, reward, done, _ = self.env.step(action)
                 if 1 < reward:
                     print(reward)
-                # self.env.render()
+                if verbose:
+                    self.env.render()
 
                 self.memory.append((state, action, reward, next_state, done))
                 state = next_state
 
                 self.__update_evaluate_function(batch_size)
+                if episode % model_save_episodes == 0:
+                    self.main_qn.save_weights(f"model/{episode}.hdf5")
 
                 if done:
                     print(
