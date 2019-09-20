@@ -31,6 +31,14 @@ class DQN(object):
         ind[self.env.legal_actions()] = False
         return ind
 
+    def calc_reward(self, step, reward, done):
+        if done:
+            return 0
+        if step >= 190:
+            return 1
+        else:
+            return 0
+
     def __calc_epsilon(self, total_step):
         return self.e_stop + (self.e_start - self.e_stop) * \
             np.exp(-self.e_decay_rate * total_step)
@@ -65,6 +73,7 @@ class DQN(object):
             self,
             num_episodes=50,
             max_steps=200,
+            warmup=10,
             batch_size=32,
             model_save_episodes=10,
             verbose=True):
@@ -90,12 +99,16 @@ class DQN(object):
 
                 # 行動に応じて状態と報酬を得る
                 next_state, reward, done, _ = self.env.step(action)
+
+                reward = self.calc_reward(step, reward, done)
                 if 1 < reward:
                     print(reward)
                 if verbose:
                     self.env.render()
 
-                self.memory.append((state, action, reward, next_state, done))
+                if step > warmup:
+                    self.memory.append(
+                        (state, action, reward, next_state, done))
                 state = next_state
 
                 self.__update_evaluate_function(batch_size)
