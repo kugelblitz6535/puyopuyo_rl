@@ -3,7 +3,7 @@ import random
 
 
 class DQN(object):
-    def __init__(self, env):
+    def __init__(self, env, e_decay_rate=0.001):
         self.env = env
         self.main_qn = self.make_model(
             env.observation_space, env.action_space)
@@ -15,7 +15,7 @@ class DQN(object):
 
         self.e_start = 1.0  # εの初期値
         self.e_stop = 0.01  # εの最終値
-        self.e_decay_rate = 0.001  # εの減衰率
+        self.e_decay_rate = e_decay_rate  # εの減衰率
 
     def make_model(self, state_size, action_size):
         raise NotImplementedError
@@ -99,12 +99,12 @@ class DQN(object):
 
                 # 行動に応じて状態と報酬を得る
                 next_state, reward, done, _ = self.env.step(action)
-
-                reward = self.calc_reward(step, reward, done)
                 if 1 < reward:
                     print(reward)
                 if verbose:
                     self.env.render()
+
+                reward = self.calc_reward(step, reward, done)
 
                 if step > warmup:
                     self.memory.append(
