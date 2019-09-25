@@ -40,13 +40,13 @@ class PuyoPuyoDQN(DQN):
             shape=state_size[3],
             name='next_next_puyo')
         x = Conv2D(16, 2)(field)
+        x = Conv2D(16, 2)(x)
+        x = Conv2D(16, 2)(x)
         x = Flatten()(x)
-        x = Dense(16, activation='relu')(x)
-        x = Dense(16, activation='relu')(x)
+        x = Dense(128, activation='relu')(x)
         x = keras.layers.concatenate(
             [x, current_puyo, next_puyo, next_next_puyo])
-        x = Dense(16, activation='relu')(x)
-        x = Dense(16, activation='relu')(x)
+        x = Dense(128, activation='relu')(x)
         output = Dense(action_size, activation='sigmoid', name='output')(x)
         model = Model(inputs=[field, current_puyo, next_puyo, next_next_puyo],
                       output=output)
