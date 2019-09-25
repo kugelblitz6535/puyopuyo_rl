@@ -1,5 +1,6 @@
 import numpy as np
 import random
+# TODO: リングバッファ
 
 
 class DQN(object):

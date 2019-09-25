@@ -39,9 +39,9 @@ class PuyoPuyoDQN(DQN):
         next_next_puyo = Input(
             shape=state_size[3],
             name='next_next_puyo')
-        x = Conv2D(16, 2)(field)
-        x = Conv2D(16, 2)(x)
-        x = Conv2D(16, 2)(x)
+        x = Conv2D(16, 2, activation='relu')(field)
+        x = Conv2D(16, 2, activation='relu')(x)
+        x = Conv2D(16, 2, activation='relu')(x)
         x = Flatten()(x)
         x = Dense(128, activation='relu')(x)
         x = keras.layers.concatenate(
