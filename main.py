@@ -55,7 +55,7 @@ class PuyoPuyoDQN(DQN):
 
     def calc_reward(self, step, reward, done):
         if done:
-            return 0
+            return -1
         if reward >= 15:
             return 1
         else:
