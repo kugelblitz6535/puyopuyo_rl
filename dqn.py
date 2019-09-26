@@ -1,16 +1,16 @@
 import numpy as np
 import random
-# TODO: リングバッファ
+from collections import deque
 
 
 class DQN(object):
-    def __init__(self, env, e_decay_rate=0.001):
+    def __init__(self, env, e_decay_rate=0.001, memory_length=1000):
         self.env = env
         self.main_qn = self.make_model(
             env.observation_space, env.action_space)
         self.target_qn = self.make_model(
             env.observation_space, env.action_space)
-        self.memory = []
+        self.memory = deque(maxlen=memory_length)
 
         self.gamma = 0.99  # 時間割引率
 
