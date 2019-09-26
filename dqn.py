@@ -77,6 +77,7 @@ class DQN(object):
             warmup=10,
             batch_size=32,
             model_save_episodes=10,
+            update_interval=1,
             verbose=True):
         # エピソード数分のエピソードを繰り返す
         total_step = 0  # 総ステップ数
@@ -112,7 +113,8 @@ class DQN(object):
                         (state, action, reward, next_state, done))
                 state = next_state
 
-                self.__update_evaluate_function(batch_size)
+                if total_step % update_interval == 0:
+                    self.__update_evaluate_function(batch_size)
                 if episode % model_save_episodes == 0:
                     self.main_qn.save_weights(f"model/{episode}.hdf5")
 
